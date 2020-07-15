@@ -68,8 +68,13 @@
             "production": {
               "browserTarget": "PagSeguro:build:production"
             }
-          }
-        },
+          },
+          "defaults": {
+            "serve": {
+              "proxyConfig": "./proxy.config.js"
+            }
+        }
+      },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
