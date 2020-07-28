@@ -1,23 +1,70 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit,ElementRef, ViewChild } from '@angular/core';
 declare const PagSeguroDirectPayment: any;
+
+import { IdSessaoService } from './id-sessao.service';
+import { MetodosPagamentoService } from './metodos-pagamento.service';
+import { GetHashService } from './get-hash.service';
+import { CheckoutService } from './checkout.service';
+
 @Component({
   selector: 'app-sessao',
   templateUrl: './sessao.component.html',
+  providers: [IdSessaoService, MetodosPagamentoService, GetHashService, CheckoutService],
   styleUrls: ['./sessao.component.css']
 })
 export class SessaoComponent implements OnInit {
 
-  gerarSessao(){
+  @ViewChild('formasDePagamento') formasDePagamento:ElementRef;
+  public idSessao;
+  public tiposDePagamento;
+  public hash;
+  public checkout;
 
-    let xhttp = new XMLHttpRequest();
-    let xhttp2 = new XMLHttpRequest();
-    let email:string = "ccsrrdrgscosta@gmail.com";
-    const token:string = "797783BEBAB14DD4884371E3E13C45AE";
-    let url = "/v2/sessions?email=" + email + "&token=" + token;
-    let id_sessao;
-    let hash;
+  constructor(public idService: IdSessaoService, public pagamentosService: MetodosPagamentoService, public getHashService: GetHashService,  public checkoutService: CheckoutService ) { 
+    this.idSessao = idService.gerarSessao();
+    this.tiposDePagamento = pagamentosService.metodosPagamento();
+    this.hash = getHashService.getHash();
+    this.checkout = checkoutService.processaCheckout(this.hash);
+  };
 
-    xhttp.onreadystatechange = function() {
+  
+
+  gerarHash(){
+    this.hash = this.getHashService.getHash()
+    
+  }
+
+  public pegarNomes(nome){
+    let nomes = [];
+    let i:string;
+    for(i in nome)
+      if(nome[i].displayName != undefined){
+        nomes.push(nome[i].displayName);
+      }
+      
+    return nomes;
+  }
+
+  formasPagamentoString: string = "";
+  iniciar_sessao(){
+    let metodosDePagamento;
+    let nomes;
+    this.idService.gerarSessao();
+    this.gerarHash();
+    this.checkoutService.processaCheckout(this.hash);
+    this.pagamentosService.metodosPagamento().then((resposta:any) => {
+      
+      metodosDePagamento = resposta
+      nomes = this.pegarNomes(metodosDePagamento.paymentMethods.CREDIT_CARD.options);
+      this.formasDePagamento.nativeElement.innerHTML = nomes.join("<br>")
+      
+    });
+  }
+  
+  
+  
+  /*
+      xhttp.onreadystatechange = function() {
 		  if (this.readyState == 4 && this.status == 200) {
       
         let i1 = this.responseText.indexOf("<id>") + 4;
@@ -27,6 +74,15 @@ export class SessaoComponent implements OnInit {
 
         console.log(id_sessao);
         PagSeguroDirectPayment.setSessionId(id_sessao);
+        //getHash(url)
+        PagSeguroDirectPayment.onSenderHashReady(function(response){
+          if(response.status == 'error') {
+              console.log(response.message);
+              return false;
+          }
+          console.log(response.senderHash);
+          hash = response.senderHash
+      });
         PagSeguroDirectPayment.getPaymentMethods({
           amount: 500.00,
           success: function(response) {
@@ -175,24 +231,11 @@ export class SessaoComponent implements OnInit {
           complete: function(response) {
                //{"safeCheckoutResponse":{"status":"success","code":"30000","message":"success","result":{"token":"81e5a9cd979646ecad47ec7c3b65bfab"}}} Callback para todas chamadas.
           }
-       });*/
+       });
 		  }
 		};
 
-    xhttp.open("POST", url);
-    xhttp.send();
-
     
-    
-    PagSeguroDirectPayment.onSenderHashReady(function(response){
-      if(response.status == 'error') {
-          console.log(response.message);
-          return false;
-      }
-      hash = response.senderHash; 
-  });
-
-  console.log(hash);
     
     /*let metodosPagamento = PagSeguroDirectPayment.getPaymentMethods({
       amount: 500.00,
@@ -213,10 +256,8 @@ export class SessaoComponent implements OnInit {
       
   });
 
-  console.log(metodosPagamento)*/
-  }
-
-  constructor() { }
+  console.log(metodosPagamento)
+  }*/
 
   ngOnInit(): void {
   }
